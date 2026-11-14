@@ -13,7 +13,6 @@ You are my senior full-stack & geospatial AI pair-programmer for the **NASA Spac
 
 ## 2. Project Vision & Challenge Alignment
 We are building a web-based agricultural decision-support dashboard that helps farmers evaluate crop suitability and compare crop-rotation strategies (baseline vs. adaptive alternatives) under shifting climate conditions.
-
 ### Core User Flow
 1. **Locate & Draw Farm:** A farmer opens the web app, which automatically retrieves their device geolocation (`navigator.geolocation`) and centers an interactive **OpenStreetMap** basemap on their location. The farmer clicks points on the map to draw their farm's boundary polygon, generating a **WGS84 (`EPSG:4326`) GeoJSON** polygon and computing the farm's centroid `(lat, lon)` and area.
 2. **Ingest Environmental & Satellite Data:** The backend uses the farm's centroid and GeoJSON bounding box to fetch historical/recent weather time-series and stream satellite imagery for a selected timeframe.
