@@ -25,6 +25,7 @@ map.addControl(new L.Control.Draw({ position: "topleft", draw: { polygon: { allo
 const $ = (id) => document.getElementById(id);
 let latestGeoJSON = null;
 let latestSpatialData = null;
+let spatialProcessToken = 0;
 let environmentalOverlays = [];
 let latestEnvironmentalData = null;
 let latestForecastResult = null;
@@ -345,13 +346,21 @@ function showLiveMeasurement(layer) {
   $("perimeter").textContent = `${formatNumber(perimeter * 1000)} m · ${formatNumber(perimeter)} km (live)`;
 }
 async function processLayer(layer) {
+  const processToken = ++spatialProcessToken;
   const feature = layer.toGeoJSON();
   latestGeoJSON = feature;
+  latestSpatialData = null;
+  latestEnvironmentalData = null;
+  clearEnvironmentalOverlays();
+  $("fetch-data-button").disabled = true;
+  $("data-badge").textContent = "Waiting";
+  $("data-warning").textContent = "Finish processing the new field before fetching environmental data.";
   showLiveMeasurement(layer);
   $("result-badge").textContent = "Processing";
   try {
     const response = await fetch("/api/spatial/process", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(feature) });
     const data = await response.json();
+    if (processToken !== spatialProcessToken) return;
     if (!response.ok) throw new Error(data.detail || "The polygon could not be processed.");
     $("centroid").textContent = `${data.centroid.latitude.toFixed(6)}°, ${data.centroid.longitude.toFixed(6)}°`;
     $("area").textContent = `${formatNumber(data.area.square_meters)} m² · ${formatNumber(data.area.hectares, 3)} ha · ${formatNumber(data.area.acres, 3)} acres`;
@@ -363,10 +372,20 @@ async function processLayer(layer) {
     $("result-badge").textContent = "Ready";
     setStatus(`Processed with ${data.projection}. Centroid is ready for NASA POWER.`);
   } catch (error) {
+    if (processToken !== spatialProcessToken) return;
+    latestSpatialData = null;
+    $("fetch-data-button").disabled = true;
     $("result-badge").textContent = "Error"; setStatus(error.message, true);
   }
 }
-map.on(L.Draw.Event.CREATED, (event) => { activeLandId = null; populateLandSelects(); drawnItems.clearLayers(); drawnItems.addLayer(event.layer); $("save-land-button").disabled = false; processLayer(event.layer); });
+map.on(L.Draw.Event.CREATED, (event) => {
+ activeLandId = null;
+ populateLandSelects();
+ drawnItems.clearLayers();
+ drawnItems.addLayer(event.layer);
+ $("save-land-button").disabled = false;
+ processLayer(event.layer);
+});
 map.on(L.Draw.Event.EDITED, (event) => event.layers.eachLayer(processLayer));
 function clearEnvironmentalOverlays() {
   environmentalOverlays.forEach(({ layer, name }) => {
@@ -375,7 +394,21 @@ function clearEnvironmentalOverlays() {
   });
   environmentalOverlays = [];
 }
-map.on(L.Draw.Event.DELETED, () => { clearEnvironmentalOverlays(); activeLandId = null; latestGeoJSON = null; latestSpatialData = null; $("fetch-data-button").disabled = true; ["centroid", "area", "perimeter", "bbox"].forEach((id) => $(id).textContent = "—"); $("geojson-output").textContent = "Draw a field to generate GeoJSON."; $("result-badge").textContent = "Waiting"; setStatus(""); });
+map.on(L.Draw.Event.DELETED, () => {
+  spatialProcessToken += 1;
+  clearEnvironmentalOverlays();
+  activeLandId = null;
+  latestGeoJSON = null;
+  latestSpatialData = null;
+  latestEnvironmentalData = null;
+  $("fetch-data-button").disabled = true;
+  ["centroid", "area", "perimeter", "bbox"].forEach((id) => $(id).textContent = "—");
+  $("geojson-output").textContent = "Draw a field to generate GeoJSON.";
+  $("result-badge").textContent = "Waiting";
+  $("data-badge").textContent = "Waiting";
+  $("data-warning").textContent = "Draw a valid field polygon to begin.";
+  setStatus("");
+});
 function flyTo(lat, lon, zoom = 13) { map.flyTo([lat, lon], zoom, { duration: 1.2 }); }
 function saveCurrentLand() {
   if (!latestGeoJSON || !latestSpatialData) return;
@@ -664,7 +697,10 @@ $("locate-button").addEventListener("click", useLocation);
 document.querySelectorAll(".preset").forEach((button) => button.addEventListener("click", () => flyTo(Number(button.dataset.lat), Number(button.dataset.lon))));
 $("copy-button").addEventListener("click", async () => { if (!latestGeoJSON) return; await navigator.clipboard.writeText(JSON.stringify(latestGeoJSON, null, 2)); $("copy-button").textContent = "Copied"; setTimeout(() => $("copy-button").textContent = "Copy GeoJSON", 1500); });
 $("fetch-data-button").addEventListener("click", async () => {
-  if (!latestGeoJSON || !latestSpatialData) return;
+  if (!latestGeoJSON?.geometry || !latestSpatialData?.centroid || !latestSpatialData?.bbox) {
+    $("data-warning").textContent = "Finish drawing a valid polygon before fetching environmental data.";
+    return;
+  }
   const button = $("fetch-data-button");
   button.disabled = true;
   $("data-badge").textContent = "Fetching";
@@ -681,7 +717,10 @@ $("fetch-data-button").addEventListener("click", async () => {
       }),
     });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.detail || "Environmental data could not be fetched.");
+    if (!response.ok) {
+      const detail = typeof data.detail === "string" ? data.detail : "The backend rejected this polygon.";
+      throw new Error(`Environmental fetch failed (${response.status}): ${detail}`);
+    }
     latestEnvironmentalData = data;
     updateHealthOverview(data);
     const weather = data.weather_summary || {};
@@ -799,7 +838,9 @@ $("fetch-data-button").addEventListener("click", async () => {
         }),
       );
     }
-    $("data-warning").textContent = data.warnings?.length ? data.warnings.join(" ") : "Data sources loaded successfully.";
+    $("data-warning").textContent = data.warnings?.length
+      ? `Analysis completed with source warnings: ${data.warnings.join(" ")}`
+      : "Data sources loaded successfully.";
     $("data-badge").textContent = "Ready";
     if (activeLandId) {
       const land = savedLands.find((item) => item.id === activeLandId);
@@ -813,7 +854,9 @@ $("fetch-data-button").addEventListener("click", async () => {
     }
   } catch (error) {
     $("data-badge").textContent = "Error";
-    $("data-warning").textContent = error.message;
+    $("data-warning").textContent = error instanceof TypeError
+      ? "Environmental fetch could not reach the server. Check that FastAPI is running and try again."
+      : error.message;
   } finally {
     button.disabled = false;
   }
