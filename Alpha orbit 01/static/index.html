@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Field Shift | Spatial Intake</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">NASA Space Apps · Field Shift</p>
+        <h1>Farm spatial intake</h1>
+      </div>
+      <div class="topbar-actions">
+        <button id="locate-button" class="button secondary">◎ Use my location</button>
+        <nav id="account-actions" aria-label="Account navigation"></nav>
+      </div>
+    </header>
+    <main id="workspace" class="layout">
+      <aside class="sidebar">
+        <section class="panel">
+          <label for="search-input">Search anywhere</label>
+          <form id="search-form" class="search-row">
+            <input id="search-input" placeholder="Beja, Tunisia or 36.7256, 9.1817" autocomplete="off" />
+            <button class="button primary" type="submit">Go</button>
+          </form>
+          <p id="search-status" class="muted">Try a city, address, or latitude, longitude.</p>
+        </section>
+        <section class="panel">
+          <h2>Demo regions</h2>
+          <div class="preset-list">
+            <button class="preset" data-lat="36.7256" data-lon="9.1817">Beja, Tunisia</button>
+            <button class="preset" data-lat="42.03" data-lon="-93.62">Ames, Iowa</button>
+            <button class="preset" data-lat="-33.45" data-lon="-70.67">Santiago, Chile</button>
+          </div>
+        </section>
+        <section class="panel results-panel">
+          <div class="panel-heading"><h2>Farm measurements</h2><span id="result-badge" class="badge">Waiting</span></div>
+          <p class="hint">Draw a polygon with the toolbar, then edit or delete it to refresh these values.</p>
+          <dl class="metrics">
+            <div><dt>Centroid</dt><dd id="centroid">—</dd></div>
+            <div><dt>Surface area</dt><dd id="area">—</dd></div>
+            <div><dt>Perimeter</dt><dd id="perimeter">—</dd></div>
+            <div><dt>Bounding box</dt><dd id="bbox">—</dd></div>
+          </dl>
+          <details>
+            <summary>Raw GeoJSON</summary>
+            <button id="copy-button" class="button small">Copy GeoJSON</button>
+            <pre id="geojson-output">Draw a field to generate GeoJSON.</pre>
+          </details>
+        </section>
+        <p id="app-status" class="status" role="status"></p>
+      </aside>
+      <section class="map-wrap"><div id="map" aria-label="Interactive farm map"></div></section>
+    </main>
+    <main id="account-view" class="account-view" hidden>
+      <div id="account-content" class="account-content"></div>
+    </main>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js"></script>
+    <script src="/static/app.js"></script>
+    <script src="/static/accounts.js"></script>
+  </body>
+</html>
