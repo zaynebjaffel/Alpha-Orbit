@@ -9,14 +9,118 @@
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
+    <div id="portal-gate" class="portal-gate" hidden>
+      <section class="portal-card">
+        <p class="eyebrow">NASA Space Apps · Field Shift</p>
+        <h1>Welcome to your farm portal</h1>
+        <p class="portal-lead">See what your land needs today, then plan a stronger crop season.</p>
+        <button id="demo-login-button" class="button primary portal-demo-button" type="button">1-Click Demo Farmer Login</button>
+        <div class="portal-divider"><span>or create your farmer profile</span></div>
+        <form id="farmer-form" class="farmer-form">
+          <label for="farmer-name">Your name</label><input id="farmer-name" required placeholder="e.g. Amina Ben Ali">
+          <label for="farm-name">Farm name</label><input id="farm-name" required placeholder="e.g. Green Valley Farm">
+          <label for="farmer-region">Region</label><input id="farmer-region" required placeholder="e.g. Beja, Tunisia">
+          <button class="button secondary" type="submit">Enter Farmer Portal</button>
+        </form>
+      </section>
+    </div>
     <header class="topbar">
       <div>
         <p class="eyebrow">NASA Space Apps · Field Shift</p>
-        <h1>Farm spatial intake</h1>
+        <h1>Farmer decision portal</h1>
       </div>
-      <button id="locate-button" class="button secondary">◎ Use my location</button>
+      <div class="topbar-actions">
+        <span id="farmer-greeting" class="farmer-greeting"></span>
+        <button id="logout-button" class="button small" type="button">Switch Farmer / Log Out</button>
+        <label class="active-land-label" for="active-land-select">Active Land</label>
+        <select id="active-land-select"></select>
+        <button id="delete-land-button" class="button small" type="button" title="Delete active land" aria-label="Delete active land">🗑</button>
+        <input id="land-name-input" placeholder="Land name" aria-label="Land name" />
+        <button id="save-land-button" class="button primary" type="button" disabled>Save Land</button>
+        <button id="locate-button" class="button secondary">◎ Use my location</button>
+      </div>
     </header>
-    <main class="layout">
+    <nav class="app-nav" aria-label="Farmer tasks">
+      <button class="nav-tab active" data-page="lands-page" type="button">My Lands</button>
+      <button class="nav-tab" data-page="health-page" type="button">Land Health &amp; Data</button>
+      <button class="nav-tab climate-nav-tab" data-page="climate-page" type="button">+2°C Climate Plan</button>
+      <button class="nav-tab" data-page="rotations-page" type="button">Best Rotations</button>
+      <button class="nav-tab" data-page="custom-page" type="button">Test My Own Rotation</button>
+      <button class="nav-tab" data-page="weather-page" type="button">10-Day Weather &amp; Alerts <span id="forecast-badge" class="alert-badge">—</span></button>
+    </nav>
+    <div id="active-context" class="active-context" hidden>
+      <strong id="context-land-name">No parcel selected</strong>
+      <span id="context-land-details"></span>
+      <button id="context-change-land" class="button small" type="button">Change Land</button>
+    </div>
+    <section id="lands-page" class="portal-page lands-page">
+      <div class="page-heading"><div><p class="eyebrow">Your farm workspace</p><h2>My Lands</h2><p class="hint">Open a prepared demo or continue with one of your saved parcels.</p></div><button id="open-draw-land" class="button primary" type="button">+ Add / Draw New Land</button></div>
+      <div class="demo-grid">
+        <article class="demo-card" data-demo-land="demo-beja"><span class="demo-icon">☀</span><h3>Beja Cereal Parcel</h3><p>Semi-arid cereal and legume planning demo.</p><button class="button secondary" type="button">Open demo</button></article>
+        <article class="demo-card" data-demo-land="demo-iowa"><span class="demo-icon">◒</span><h3>Iowa Rain-fed Farm</h3><p>Temperate corn and soybean planning demo.</p><button class="button secondary" type="button">Open demo</button></article>
+        <article class="demo-card" data-demo-land="demo-santiago"><span class="demo-icon">◌</span><h3>Santiago Dry Field</h3><p>Drought-stressed field and water-saving demo.</p><button class="button secondary" type="button">Open demo</button></article>
+      </div>
+      <h3 class="section-title">Saved lands</h3>
+      <div id="saved-lands-grid" class="saved-lands-grid"></div>
+    </section>
+    <section id="rotations-page" class="portal-page focused-page" hidden>
+      <div class="page-heading"><div><p class="eyebrow">Simple choices</p><h2>Best Rotations</h2><p class="hint">Choose a plan based on what matters most this season.</p></div></div>
+      <div id="rotation-cards" class="focus-grid"></div>
+    </section>
+    <section id="custom-page" class="portal-page focused-page" hidden>
+      <div class="page-heading"><div><p class="eyebrow">Your decision</p><h2>Test My Own Rotation</h2><p class="hint">Pick one crop for each year and compare water, income, and soil nitrogen.</p></div></div>
+      <div class="custom-focus-card">
+        <div class="rotation-builder"><label>Year 1<select id="focus-year-1"></select></label><label>Year 2<select id="focus-year-2"></select></label><label>Year 3<select id="focus-year-3"></select></label><button id="focus-custom-button" class="button primary" type="button">Check this plan</button></div>
+        <div id="focus-custom-result" class="focus-result">Select three crops to see the result.</div>
+      </div>
+    </section>
+    <section id="weather-page" class="portal-page focused-page" hidden>
+      <div class="page-heading"><div><p class="eyebrow">Meteomatics field forecast</p><h2>10-Day Weather &amp; Alerts</h2><p id="weather-status" class="hint">Select a parcel to load its latest forecast.</p></div></div>
+      <section class="weather-land-bar">
+        <label for="weather-land-select">Select land<select id="weather-land-select" aria-label="Select land for weather forecast"></select></label>
+        <div id="weather-land-pills" class="land-pills"></div>
+        <div id="weather-land-context" class="weather-land-context">Parcel details will appear here.</div>
+      </section>
+      <div id="weather-loading" class="empty-state" hidden>Loading Meteomatics forecast…</div>
+      <div id="weather-unavailable" class="notice" hidden></div>
+      <div id="weather-content" hidden>
+        <div id="weather-quick" class="weather-summary-grid"></div>
+        <section class="weather-alerts-section"><h3>Field alerts</h3><div id="weather-alerts" class="alert-list"></div></section>
+        <section class="weather-chart-section"><h3>Next 10 days</h3><div class="chart-wrap"><canvas id="forecast-chart"></canvas></div></section>
+        <section class="forecast-table-wrap">
+          <table><thead><tr><th>Date</th><th>High / Low °C</th><th>Rainfall mm</th><th>ET₀ mm</th><th>Root-zone moisture</th><th>Field verdict</th></tr></thead>
+            <tbody id="forecast-table"></tbody>
+          </table>
+        </section>
+      </div>
+    </section>
+    <section id="climate-page" class="portal-page focused-page climate-page" hidden>
+      <div class="page-heading">
+        <div><p class="eyebrow">Plan for a warmer season</p><h2>+2°C Climate Plan</h2><p class="hint">A simple comparison of today’s conditions and a two-degree warmer scenario.</p></div>
+      </div>
+      <div id="climate-focus-empty" class="empty-state">Open a land with a completed analysis to see its climate plan.</div>
+      <div id="climate-focus-content" hidden>
+        <div class="climate-focus-grid">
+          <article class="focus-card climate-highlight"><span class="focus-label">Heat stress</span><strong id="focus-climate-heat">—</strong><p>Baseline → +2°C days</p></article>
+          <article class="focus-card climate-highlight"><span class="focus-label">Water pressure</span><strong id="focus-climate-water">—</strong><p>Extra irrigation for the best crop</p></article>
+          <article class="focus-card climate-highlight"><span class="focus-label">Growing heat</span><strong id="focus-climate-gdd">—</strong><p>Baseline → +2°C GDD</p></article>
+        </div>
+        <article class="focus-card climate-advice-card">
+          <h3 id="focus-climate-headline">—</h3>
+          <p id="focus-climate-advice">—</p>
+          <h3>What to do next</h3>
+          <ul id="focus-climate-actions"></ul>
+        </article>
+        <div class="climate-priority-bar">
+          <strong>What matters most to you?</strong>
+          <button class="priority-button active" data-climate-priority="water" type="button">Save water</button>
+          <button class="priority-button" data-climate-priority="resilience" type="button">Handle heat</button>
+          <button class="priority-button" data-climate-priority="profit" type="button">Protect income</button>
+        </div>
+        <div id="climate-rotation-recommendations" class="focus-grid"></div>
+      </div>
+    </section>
+    <main id="health-page" class="layout">
       <aside class="sidebar">
         <section class="panel">
           <label for="search-input">Search anywhere</label>
@@ -49,6 +153,87 @@
             <pre id="geojson-output">Draw a field to generate GeoJSON.</pre>
           </details>
         </section>
+        <section class="panel data-panel">
+          <div class="panel-heading"><h2>Environmental data</h2><span id="data-badge" class="badge">Waiting</span></div>
+          <p class="hint">Fetch open weather, soil, terrain, and Sentinel-2 analytical layers for the drawn farm.</p>
+          <button id="fetch-data-button" class="button primary" type="button" disabled>Fetch Farm Environmental Data</button>
+          <div id="environmental-results" class="environmental-results" hidden>
+            <section class="health-hero">
+              <div><p class="eyebrow">Land health verdict</p><h2 id="health-score">—</h2><span id="health-status" class="health-badge">Waiting for analysis</span></div>
+              <p id="health-summary">Fetch the field analysis to see the three most important actions for this parcel.</p>
+            </section>
+            <div class="pillar-grid">
+              <article id="water-pillar" class="pillar-card"><span>💧</span><strong>Water &amp; moisture</strong><p>—</p></article>
+              <article id="heat-pillar" class="pillar-card"><span>☀</span><strong>Heat &amp; climate</strong><p>—</p></article>
+              <article id="soil-pillar" class="pillar-card"><span>🌱</span><strong>Soil fertility &amp; pH</strong><p>—</p></article>
+              <article id="vigor-pillar" class="pillar-card"><span>🛡</span><strong>Vigor &amp; erosion</strong><p>—</p></article>
+            </div>
+            <details class="technical-details">
+              <summary>View Technical NASA &amp; FAO-56 Details</summary>
+            <dl class="metrics">
+              <div><dt>Average temperature</dt><dd id="weather-temperature">—</dd></div>
+              <div><dt>Total rainfall</dt><dd id="weather-rainfall">—</dd></div>
+              <div><dt>Heat-stress days &gt; 35°C</dt><dd id="weather-heat">—</dd></div>
+              <div><dt>Root-zone moisture</dt><dd id="weather-moisture">—</dd></div>
+              <div><dt>Soil type / pH</dt><dd id="soil-summary">—</dd></div>
+              <div><dt>Elevation / slope</dt><dd id="terrain-summary">—</dd></div>
+              <div><dt>Optical layer summary</dt><dd id="satellite-summary">—</dd></div>
+              <div><dt>Stage 3 indicators</dt><dd id="stage3-summary">—</dd></div>
+              <div><dt>Vulnerability</dt><dd id="vulnerability-summary">—</dd></div>
+              <div><dt>Best crop</dt><dd id="crop-summary">—</dd></div>
+              <div><dt>Best rotation</dt><dd id="rotation-summary">—</dd></div>
+            </dl>
+            </details>
+            <section id="climate-card" class="recommendation-card climate-card" hidden>
+              <h3>+2°C Climate Scenario</h3>
+              <p id="climate-headline" class="recommendation-headline"></p>
+              <dl class="metrics recommendation-metrics">
+                <div><dt>Heat-stress days</dt><dd id="climate-heat">—</dd></div>
+                <div><dt>ET₀ change</dt><dd id="climate-et0">—</dd></div>
+                <div><dt>GDD change</dt><dd id="climate-gdd">—</dd></div>
+                <div><dt>Best crop water impact</dt><dd id="climate-crop-water">—</dd></div>
+                <div><dt>Best rotation water impact</dt><dd id="climate-rotation-water">—</dd></div>
+              </dl>
+              <p id="climate-warning" class="hint"></p>
+              <h4>Plant recommendations under +2°C</h4>
+              <ul id="climate-crop-recommendations"></ul>
+              <h4>Recommended plant cycles</h4>
+              <div id="climate-cycle-recommendations"></div>
+            </section>
+            <section id="recommendation-card" class="recommendation-card" hidden>
+              <h3>Recommended plan</h3>
+              <p id="recommendation-headline" class="recommendation-headline"></p>
+              <dl class="metrics recommendation-metrics">
+                <div><dt>Recommended crop</dt><dd id="recommended-crop">—</dd></div>
+                <div><dt>Crop water need</dt><dd id="recommended-crop-water">—</dd></div>
+                <div><dt>Crop revenue estimate</dt><dd id="recommended-crop-revenue">—</dd></div>
+                <div><dt>Recommended rotation</dt><dd id="recommended-rotation">—</dd></div>
+                <div><dt>Rotation water use</dt><dd id="recommended-rotation-water">—</dd></div>
+                <div><dt>Rotation fertilizer savings</dt><dd id="recommended-rotation-savings">—</dd></div>
+              </dl>
+              <h4>Actions</h4>
+              <ul id="recommendation-actions"></ul>
+            </section>
+            <div id="crop-ranking" class="hint"></div>
+            <section class="crop-explorer">
+              <div class="explorer-heading"><h3>Crop Explorer</h3><span id="catalog-count" class="badge">Catalog</span></div>
+              <div id="crop-filters" class="filter-pills"></div>
+              <input id="crop-search" class="text-input" type="search" placeholder="Search crops, families, or traits">
+              <div id="crop-leaderboard" class="crop-leaderboard"></div>
+              <button id="compare-crops-button" class="button secondary" type="button">Compare selected crops</button>
+              <button id="compare-extremes-button" class="button secondary" type="button">Compare top 3 vs. worst 2</button>
+              <div id="crop-comparison" class="comparison-table-wrap" hidden></div>
+              <h4>Build your own 3-year rotation</h4>
+              <div class="rotation-builder">
+                <select id="custom-year-1"></select><select id="custom-year-2"></select><select id="custom-year-3"></select>
+                <button id="custom-rotation-button" class="button primary" type="button">Evaluate rotation</button>
+              </div>
+              <div id="custom-rotation-result" class="hint"></div>
+            </section>
+            <div id="rotation-comparison" class="hint"></div>
+            <p id="data-warning" class="hint"></p>
+          </div>
+        </section>
         <p id="app-status" class="status" role="status"></p>
       </aside>
       <section class="map-wrap"><div id="map" aria-label="Interactive farm map"></div></section>
@@ -56,6 +241,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <script src="/static/app.js"></script>
   </body>
 </html>

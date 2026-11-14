@@ -1,0 +1,479 @@
+FIELD SHIFT - STAGE 4 CROP AND ROTATION RESULTS
+================================================
+
+Purpose
+-------
+This file documents every plant tested by the Stage 4 agronomic engine,
+the score calculation, the current Iowa demo result, and why the selected
+crop and rotation are recommended.
+
+This is a demo decision-support result, not a guaranteed yield or financial
+forecast. Prices, yields, fertilizer values, and crop traits are reference
+assumptions in:
+
+  backend/services/crop_database.json
+
+The calculation engine is:
+
+  backend/services/crop_engine.py
+
+
+1. DATA USED FOR THE IOWA DEMO
+------------------------------
+
+Location:
+  Ames, Iowa
+  Latitude: 42.03
+  Longitude: -93.62
+
+Evaluation period:
+  2025-11-14 through 2026-11-14
+
+Measured environmental inputs:
+  NASA POWER observations:              363 days
+  Annual precipitation:                 1090.30 mm
+  Mean root-zone wetness:               0.5103
+  Mean daily FAO-56 ET0:                2.57 mm/day
+  Total FAO-56 ET0:                     926.09 mm
+  Heat-stress days above 35 C:          6
+  Mean terrain slope:                   5.37 percent
+  Soil available water capacity:        unavailable
+  Soil-fit behavior:                    neutral/default fit of 1.0 because no
+                                        measured AWC value was returned
+
+The missing soil AWC value is not invented. The engine reports medium
+confidence because weather inputs were available, but soil AWC was not.
+
+
+2. SUITABILITY SCORE FORMULA
+----------------------------
+
+Each crop receives four normalized components:
+
+  water_fit  = 1 - irrigation_deficit_ratio
+  stress_fit = clamp(root_zone_wetness * 1.5, 0, 1)
+  soil_fit   = 1.0 when AWC is unavailable; otherwise clamp(AWC / 30, 0, 1)
+  slope_fit  = 0.9 when slope >= 15%; otherwise 1.0
+
+The score is:
+
+  score = 100 * (
+      0.45 * water_fit
+    + 0.25 * stress_fit
+    + 0.20 * soil_fit
+    + 0.10 * slope_fit
+  )
+
+The score is clamped to 0-100.
+
+Water calculations:
+
+  crop_ETc_mm = ET0_mean_mm_per_day * growing_days * Kc_mid
+  rainfall_available_mm = annual_rainfall_mm * growing_days / 365
+  irrigation_mm = max(0, crop_ETc_mm - rainfall_available_mm)
+  irrigation_m3_per_ha = irrigation_mm * 10
+  deficit_ratio = irrigation_mm / crop_ETc_mm
+
+Yield factor:
+
+  heat_penalty = min(0.35, heat_days / growing_days * 1.5)
+  yield_factor = max(
+      0,
+      1 - Ky * deficit_ratio - heat_penalty
+  )
+
+Revenue:
+
+  estimated_revenue_usd_per_ha =
+      yield_t_per_ha * price_usd_per_t * yield_factor
+
+Fertilizer savings:
+
+  fertilizer_saving_usd_per_ha =
+      max(0, nitrogen_contribution_kg_per_ha * 1.20)
+
+The nitrogen value is a reference assumption of 1.20 USD per kg.
+
+
+3. ALL PLANTS TESTED
+---------------------
+
+The engine tested five plants:
+
+  1. Grain Corn
+  2. Soybeans
+  3. Winter Wheat
+  4. Red Clover (Cover Crop)
+  5. Winter Rye (Cover Crop)
+
+
+4. CROP SCORE CALCULATIONS
+--------------------------
+
+Common Iowa components:
+
+  stress_fit = 0.5103 * 1.5 = 0.7655, rounded to 0.765
+  soil_fit   = 1.000 because AWC was unavailable
+  slope_fit  = 1.000 because slope was below 15 percent
+
+4.1 Grain Corn
+--------------
+
+Traits:
+  Kc_mid:                         1.20
+  Growing duration:               135 days
+  Water-stress sensitivity Ky:    1.25
+  Nitrogen contribution:          -160 kg/ha
+  Reference yield:                9.5 t/ha
+  Reference price:                190 USD/t
+
+Calculation:
+  crop_ETc = 2.57 * 135 * 1.20
+           = 416.34 mm
+
+  rainfall_available = 1090.30 * 135 / 365
+                     = 403.27 mm approximately
+
+  irrigation = 416.34 - 403.27
+             = 13.08 mm
+             = 130.78 m3/ha
+
+  water_fit = 1 - (13.08 / 416.34)
+            = 0.969
+
+  score = 100 * (
+      0.45 * 0.969
+    + 0.25 * 0.765
+    + 0.20 * 1.000
+    + 0.10 * 1.000
+  )
+        = 92.72 / 100
+
+  yield_factor = 0.894
+  revenue = 9.5 * 190 * 0.894
+           = 1613.79 USD/ha
+  fertilizer saving = max(0, -160 * 1.20)
+                    = 0 USD/ha
+
+Result:
+  Suitability:       92.72 / 100
+  Irrigation:        130.78 m3/ha
+  Revenue estimate:  1613.79 USD/ha
+
+Why it is not the top recommendation:
+  Corn is commercially attractive, but it has the lowest suitability score
+  in this Iowa run, requires the only modeled irrigation, and removes
+  approximately 160 kg/ha of nitrogen.
+
+
+4.2 Soybeans
+------------
+
+Traits:
+  Kc_mid:                         1.15
+  Growing duration:               120 days
+  Water-stress sensitivity Ky:    0.85
+  Nitrogen contribution:          +40 kg/ha
+  Reference yield:                3.2 t/ha
+  Reference price:                430 USD/t
+
+Calculation:
+  crop_ETc = 2.57 * 120 * 1.15
+           = 354.66 mm
+
+  rainfall_available = 1090.30 * 120 / 365
+                     = 358.45 mm approximately
+
+  irrigation = max(0, 354.66 - 358.45)
+             = 0.00 m3/ha
+
+  water_fit = 1.000
+
+  score = 100 * (
+      0.45 * 1.000
+    + 0.25 * 0.765
+    + 0.20 * 1.000
+    + 0.10 * 1.000
+  )
+        = 94.14 / 100
+
+  yield_factor = 0.925
+  revenue = 3.2 * 430 * 0.925
+           = 1272.80 USD/ha
+  fertilizer saving = 40 * 1.20
+                    = 48.00 USD/ha
+
+Result:
+  Suitability:       94.14 / 100
+  Irrigation:        0.00 m3/ha
+  Revenue estimate:  1272.80 USD/ha
+  Fertilizer saving: 48.00 USD/ha
+  Nitrogen:          +40 kg/ha
+
+Why it is recommended:
+  Soybeans tie for the highest environmental suitability, require no modeled
+  irrigation, contribute nitrogen, have positive fertilizer savings, and
+  produce direct market revenue. The implementation uses revenue as the
+  tie-breaker among crops with the same suitability score.
+
+
+4.3 Winter Wheat
+-----------------
+
+Traits:
+  Kc_mid:                         1.15
+  Growing duration:               160 days
+  Water-stress sensitivity Ky:    1.00
+  Nitrogen contribution:          -110 kg/ha
+  Reference yield:                5.5 t/ha
+  Reference price:                240 USD/t
+
+Calculation:
+  crop_ETc = 2.57 * 160 * 1.15
+           = 472.88 mm
+
+  rainfall_available = 1090.30 * 160 / 365
+                     = 477.94 mm approximately
+
+  irrigation = 0.00 m3/ha
+  water_fit = 1.000
+
+  score = 100 * (
+      0.45 * 1.000
+    + 0.25 * 0.765
+    + 0.20 * 1.000
+    + 0.10 * 1.000
+  )
+        = 94.14 / 100
+
+  yield_factor = 0.944
+  revenue = 5.5 * 240 * 0.944
+           = 1245.75 USD/ha
+  fertilizer saving = 0 USD/ha
+
+Result:
+  Suitability:       94.14 / 100
+  Irrigation:        0.00 m3/ha
+  Revenue estimate:  1245.75 USD/ha
+
+Why it is useful but not the selected crop:
+  Winter wheat ties for the highest environmental score and has strong
+  modeled revenue, but it removes 110 kg/ha of nitrogen and has no modeled
+  fertilizer savings. Soybeans are preferred because they have similar fit
+  with positive nitrogen contribution and fertilizer savings.
+
+
+4.4 Red Clover (Cover Crop)
+---------------------------
+
+Traits:
+  Kc_mid:                         1.05
+  Growing duration:               90 days
+  Water-stress sensitivity Ky:    0.60
+  Nitrogen contribution:          +90 kg/ha
+  Reference yield:                0.0 t/ha
+  Reference price:                0 USD/t
+
+Calculation:
+  crop_ETc = 2.57 * 90 * 1.05
+           = 242.86 mm
+
+  irrigation = 0.00 m3/ha
+  water_fit = 1.000
+
+  score = 100 * (
+      0.45 * 1.000
+    + 0.25 * 0.765
+    + 0.20 * 1.000
+    + 0.10 * 1.000
+  )
+        = 94.14 / 100
+
+  yield_factor = 0.900
+  direct revenue = 0.00 USD/ha
+  fertilizer saving = 90 * 1.20
+                   = 108.00 USD/ha
+
+Result:
+  Suitability:       94.14 / 100
+  Irrigation:        0.00 m3/ha
+  Direct revenue:    0.00 USD/ha
+  Fertilizer saving: 108.00 USD/ha
+  Nitrogen:          +90 kg/ha
+
+Why it is valuable:
+  Red clover is not the best standalone cash crop, but it is the strongest
+  nitrogen-building and fertilizer-saving option in this tested set. It is
+  best used as a cover-crop phase inside a rotation.
+
+
+4.5 Winter Rye (Cover Crop)
+---------------------------
+
+Traits:
+  Kc_mid:                         1.00
+  Growing duration:               100 days
+  Water-stress sensitivity Ky:    0.70
+  Nitrogen contribution:          0 kg/ha
+  Reference yield:                0.0 t/ha
+  Reference price:                0 USD/t
+
+Calculation:
+  crop_ETc = 2.57 * 100 * 1.00
+           = 257.00 mm
+
+  irrigation = 0.00 m3/ha
+  water_fit = 1.000
+
+  score = 100 * (
+      0.45 * 1.000
+    + 0.25 * 0.765
+    + 0.20 * 1.000
+    + 0.10 * 1.000
+  )
+        = 94.14 / 100
+
+  yield_factor = 0.910
+  direct revenue = 0.00 USD/ha
+  fertilizer saving = 0.00 USD/ha
+
+Result:
+  Suitability:       94.14 / 100
+  Irrigation:        0.00 m3/ha
+  Direct revenue:    0.00 USD/ha
+
+Why it is useful but not the recommendation:
+  Winter rye has excellent water suitability and is useful for soil cover,
+  but it contributes no modeled nitrogen, fertilizer savings, or direct
+  revenue. Red clover is the stronger cover-crop choice when nitrogen
+  improvement is the priority.
+
+
+5. WORST-TO-BEST RANKING
+-------------------------
+
+The Iowa scores are:
+
+  1. Grain Corn              92.72
+  2. Soybeans                94.14
+  3. Winter Wheat            94.14
+  4. Red Clover               94.14
+  5. Winter Rye               94.14
+
+The four-way tie is expected because the score formula is primarily
+environmental. The engine selects Soybeans as the recommended crop because
+it wins the secondary revenue tie-breaker while also contributing nitrogen
+and fertilizer savings.
+
+This does not mean soybeans are universally better. The best choice depends
+on the user's objective:
+
+  Highest environmental fit:      Soybeans, wheat, clover, or rye (tie)
+  Direct market revenue:          Grain Corn in this reference model
+  Nitrogen contribution:          Red Clover
+  Soil-cover function:            Red Clover or Winter Rye
+  Balanced cash and soil benefit: Soybeans
+
+
+6. ROTATION STRATEGIES
+----------------------
+
+6.1 Baseline cereal
+    Sequence: Corn -> Corn -> Corn
+    Mean suitability:              92.72
+    Water use:                     392.34 m3/ha
+    Supplemental income:           4841.37 USD/ha
+    Fertilizer savings:            0.00 USD/ha
+    Net nitrogen contribution:     -480 kg/ha
+
+    Advantage:
+      Highest reference income in this model.
+
+    Disadvantage:
+      Highest water use, repeated nitrogen removal, and weakest long-term
+      soil-balance profile.
+
+6.2 Cereal-legume rotation
+    Sequence: Corn -> Soybeans -> Winter Wheat
+    Mean suitability:              93.67
+    Water use:                     130.78 m3/ha
+    Supplemental income:           4132.34 USD/ha
+    Fertilizer savings:            48.00 USD/ha
+    Net nitrogen contribution:     -230 kg/ha
+
+    Advantage:
+      Much lower water use than continuous corn and includes a legume.
+
+    Disadvantage:
+      Nitrogen balance remains negative because wheat and corn remove more
+      nitrogen than soybeans contribute.
+
+6.3 Adaptive cover rotation
+    Sequence: Corn -> Soybeans -> Red Clover
+    Mean suitability:              93.67
+    Water use:                     130.78 m3/ha
+    Supplemental income:           2886.59 USD/ha
+    Fertilizer savings:            156.00 USD/ha
+    Net nitrogen contribution:     -30 kg/ha
+
+    Advantage:
+      Same low modeled water use as the cereal-legume strategy, the highest
+      fertilizer savings, and the closest nitrogen balance to neutral.
+
+    Disadvantage:
+      Lower direct income because red clover is modeled as a cover crop with
+      no direct market revenue.
+
+
+7. WHY THE ADAPTIVE COVER ROTATION IS BEST
+------------------------------------------
+
+The engine recommends the Adaptive cover rotation because it provides the
+best combined resilience trade-off:
+
+  - Mean suitability:              93.67
+  - Water use:                     130.78 m3/ha
+  - Fertilizer savings:            156.00 USD/ha
+  - Nitrogen balance:              -30 kg/ha
+  - Includes a legume:             Soybeans
+  - Includes a cover crop:         Red Clover
+
+It is not the highest-income strategy. Continuous corn produces more direct
+reference income, but at the cost of much higher water use and a nitrogen
+balance of -480 kg/ha. The adaptive strategy is better when resilience,
+fertilizer savings, water reduction, and soil protection matter more than
+maximum short-term revenue.
+
+
+8. RECOMMENDATIONS
+-------------------
+
+For the current Iowa demo:
+
+  1. Use Soybeans when a cash crop with good environmental fit and positive
+     nitrogen contribution is desired.
+  2. Use Red Clover as the cover-crop phase when fertilizer savings and
+     nitrogen improvement are priorities.
+  3. Prefer the Adaptive cover rotation for a balanced resilience plan.
+  4. Use continuous corn only when maximum modeled direct income is the
+     priority and water/fertilizer impacts are acceptable.
+  5. Keep a legume in the sequence to reduce nitrogen pressure.
+  6. Keep soil covered during bare-ground windows to reduce erosion and
+     moisture loss.
+  7. Recalculate before commercial decisions using local yields, prices,
+     fertilizer prices, planting dates, and actual irrigation costs.
+  8. Treat the current results as medium-confidence because SoilGrids did
+     not return an available-water-capacity value for this run.
+
+
+9. LIMITATIONS
+--------------
+
+  - Crop prices and yields are reference assumptions, not live local quotes.
+  - Annual rainfall is apportioned across each crop's typical growing days.
+  - The current crop score is a screening score, not a calibrated yield model.
+  - The optical crop-health result uses the selected Sentinel-2 scene.
+  - Soil AWC was unavailable in the documented Iowa run.
+  - Cover-crop revenue is set to zero; ecosystem or forage value is not
+    currently monetized.
+  - Local agronomic advice should be reviewed before implementation.
