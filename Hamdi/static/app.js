@@ -625,17 +625,30 @@ async function exportPdfReport(event) {
   }
   document.querySelectorAll(".report-export-button").forEach((item) => { item.disabled = true; item.textContent = "Generating PDF…"; });
   const report = $("pdf-report-container");
+  const reportPage = report.querySelector(".pdf-report");
+  const previousAriaHidden = report.getAttribute("aria-hidden");
+  let capturePage;
   report.classList.add("pdf-report-visible");
+  report.setAttribute("aria-hidden", "false");
   try {
     if (window.html2pdf) {
-      await window.html2pdf().set({
+      capturePage = reportPage.cloneNode(true);
+      capturePage.removeAttribute("id");
+      capturePage.style.cssText = "display:block;position:absolute;left:-10000px;top:0;width:190mm;max-width:none;margin:0;padding:8mm;background:#fff;color:#17231d;";
+      document.body.append(capturePage);
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const pdfPromise = window.html2pdf().set({
         margin: [8, 8, 8, 8],
         filename: `field-shift-${(savedLands.find((item) => item.id === activeLandId)?.name || "action-report").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.pdf`,
         image: { type: "jpeg", quality: 0.98 },
         html2canvas: { scale: 2, backgroundColor: "#ffffff", useCORS: true },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
         pagebreak: { mode: ["css", "legacy"] },
-      }).from(report).save();
+      }).from(capturePage).save();
+      await Promise.race([
+        pdfPromise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error("PDF rendering timed out")), 8000)),
+      ]);
     } else {
       window.print();
     }
@@ -643,7 +656,10 @@ async function exportPdfReport(event) {
     setStatus(`PDF export failed; opening print dialog instead: ${error.message}`, true);
     window.print();
   } finally {
+    capturePage?.remove();
     report.classList.remove("pdf-report-visible");
+    if (previousAriaHidden == null) report.removeAttribute("aria-hidden");
+    else report.setAttribute("aria-hidden", previousAriaHidden);
     document.querySelectorAll(".report-export-button").forEach((item) => { item.disabled = false; item.textContent = original; });
   }
 }
