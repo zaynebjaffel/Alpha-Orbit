@@ -154,3 +154,37 @@ th, td { padding: 8px; text-align: left; border-bottom: 1px solid var(--line); w
 @media (max-width: 1000px) { .pillar-grid, .focus-grid, .climate-focus-grid, .weather-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .weather-land-bar { grid-template-columns: 1fr; align-items: stretch; } }
 @media (max-width: 900px) { .demo-grid, .saved-lands-grid { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .topbar { padding: 15px; } .layout { display: flex; flex-direction: column-reverse; } .sidebar { border-right: 0; } .map-wrap, #map { min-height: 55vh; } .app-nav, .active-context { padding-left: 15px; padding-right: 15px; } .page-heading { align-items: start; flex-direction: column; } .focus-grid, .climate-focus-grid, .weather-summary-grid { grid-template-columns: 1fr; } }
+#pdf-report-container { display: none; }
+#pdf-report-container.pdf-report-visible { display: block; position: fixed; inset: 0; z-index: 5000; overflow: auto; padding: 18px; background: #fff; }
+.pdf-report { width: 190mm; max-width: 100%; margin: 0 auto; padding: 8mm; color: #17231d; background: #fff; font: 10px/1.35 Arial, sans-serif; }
+.pdf-report-header { padding-bottom: 5mm; border-bottom: 2px solid #237a52; }
+.pdf-report-header h1 { margin: 2mm 0; font-size: 19px; line-height: 1.15; color: #17352b; }
+.pdf-kicker { margin: 0; color: #237a52; font-size: 9px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.pdf-section { margin-top: 4mm; break-inside: avoid; }
+.pdf-section h2 { margin: 0 0 2mm; padding-bottom: 1mm; color: #17352b; border-bottom: 1px solid #b9d8bd; font-size: 12px; }
+.pdf-health-line { display: flex; align-items: center; gap: 8px; }
+.pdf-health-line strong { color: #237a52; font-size: 17px; }
+.pdf-health-line span { padding: 1mm 2mm; color: #17352b; background: #e8f2e9; border-radius: 12px; font-weight: 700; }
+.pdf-summary { margin: 1mm 0; }
+.pdf-metric-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2mm; margin-top: 2mm; }
+.pdf-metric-strip > div { padding: 2mm; border: 1px solid #c9d8cd; border-radius: 3px; }
+.pdf-metric-strip span { display: block; color: #52665a; font-size: 8px; }
+.pdf-metric-strip strong { display: block; margin-top: 1mm; font-size: 12px; }
+.pdf-two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; }
+.pdf-callout { min-height: 20mm; padding: 3mm; border-left: 4px solid #237a52; background: #f2faf2; }
+.pdf-callout.pdf-risk { border-color: #b42318; background: #fff5f3; }
+.pdf-callout strong { font-size: 11px; }
+.pdf-callout p { margin: 1.5mm 0 0; }
+.pdf-comparison-table { width: 100%; border-collapse: collapse; font-size: 8.5px; }
+.pdf-comparison-table th, .pdf-comparison-table td { padding: 1.8mm; border: 1px solid #c9d8cd; text-align: left; vertical-align: top; }
+.pdf-comparison-table th { color: #fff; background: #237a52; }
+.pdf-comparison-table td:first-child { width: 29%; font-weight: 700; }
+.pdf-footer { margin-top: 4mm; padding-top: 2mm; border-top: 1px solid #aebfb2; color: #405248; font-size: 8px; }
+.pdf-footer p { margin-top: 1mm; }
+.health-page-actions { display: flex; justify-content: flex-end; padding: 12px 18px 0; background: #fff; }
+@media print {
+  body > *:not(#pdf-report-container) { display: none !important; }
+  #pdf-report-container, #pdf-report-container.pdf-report-visible { display: block !important; position: static; padding: 0; overflow: visible; background: #fff; }
+  .pdf-report { width: auto; max-width: none; padding: 0; color: #17231d; }
+  @page { size: A4 portrait; margin: 10mm; }
+}

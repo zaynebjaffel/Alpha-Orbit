@@ -544,6 +544,109 @@ function weatherVerdict(day) {
   if (rain < 2 && moisture >= 0.25 && moisture <= 0.75) return { label: "Ideal", tone: "good" };
   return { label: "Monitor", tone: "neutral" };
 }
+function reportValue(value, suffix = "—", digits = 2) {
+  return value == null || !Number.isFinite(Number(value)) ? suffix : `${formatNumber(Number(value), digits)}`;
+}
+function buildPdfReport() {
+  const land = savedLands.find((item) => item.id === activeLandId);
+  const report = latestEnvironmentalData || land?.health_report || {};
+  const stage3 = report.stage3_indicators || {};
+  const stage4 = report.stage4_agronomics || {};
+  const stage5 = report.stage5_climate || {};
+  const weather = report.weather_summary || {};
+  const soil = report.soil_profile || {};
+  const terrain = report.terrain_slope || {};
+  const rankings = stage4.crop_rankings_worst_to_best || [];
+  const rotations = stage4.rotation_strategies || [];
+  const bestCrop = rankings[rankings.length - 1];
+  const avoidCrop = rankings[0];
+  const bestRotation = [...rotations].filter((row) => !row.sequence.includes("fallow")).sort((a, b) => b.mean_suitability_score - a.mean_suitability_score)[0] || rotations[0];
+  const baseline = rotations.find((row) => row.name.toLowerCase().includes("conventional")) || rotations.find((row) => row.sequence.includes("fallow"));
+  const impact = (stage5.rotation_impacts || []).find((row) => row.name === bestRotation?.name);
+  const cropRows = Object.fromEntries(rankings.map((row) => [row.crop_id, row]));
+  const rotationMargin = (rotation) => rotation ? rotation.sequence.reduce((sum, id) => sum + (cropRows[id]?.net_margin_usd_ha || 0), 0) : null;
+  const score = $("health-score").textContent || "Not yet analyzed";
+  const soilTexture = [soil.sand_percent == null ? null : `sand ${formatNumber(soil.sand_percent)}%`, soil.clay_percent == null ? null : `clay ${formatNumber(soil.clay_percent)}%`].filter(Boolean).join(", ") || "texture unavailable";
+  const identity = land
+    ? `${land.name} · ${reportValue(land.area_ha, "area unavailable")} ha · centroid ${reportValue(land.centroid?.lat, "—", 5)}, ${reportValue(land.centroid?.lon, "—", 5)} · slope ${reportValue(terrain.mean_slope_percent ?? land.slope_pct, "—")}% · pH ${reportValue(soil.ph, "—", 1)} · ${soilTexture} · report date ${new Date().toLocaleDateString()}`
+    : "No active parcel selected.";
+  $("pdf-parcel-identity").textContent = `${currentUser()?.name || "Farmer"} · ${currentUser()?.farm || "Farm"} · ${currentUser()?.region || "Region"} · ${identity}`;
+  $("pdf-health-score").textContent = score;
+  $("pdf-health-status").textContent = $("health-status").textContent || "Analysis pending";
+  $("pdf-health-summary").textContent = $("health-summary").textContent || "Complete a land analysis to populate this diagnostic.";
+  const moisture = stage3.moisture_stress?.mean_root_zone_wetness ?? weather.mean_root_zone_moisture;
+  $("pdf-metric-strip").replaceChildren(...[
+    ["Seasonal rainfall", `${reportValue(weather.total_rainfall_mm)} mm`],
+    ["Reference ET₀", `${reportValue(stage3.reference_et0?.total_mm)} mm`],
+    ["GDD", reportValue(stage3.growing_degree_days?.total)],
+    ["Root-zone moisture", moisture == null ? "—" : `${formatNumber(Number(moisture) * 100, 0)}%`],
+  ].map(([label, value]) => {
+    const item = document.createElement("div");
+    item.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
+    return item;
+  }));
+  $("pdf-best-crop").innerHTML = `<strong>Recommended crop: ${bestCrop?.name || "Not yet scored"}</strong><p>Suitability ${bestCrop ? formatNumber(bestCrop.suitability_score) : "—"}/100 · projected yield ${bestCrop ? formatNumber(bestCrop.projected_yield_t_ha) : "—"} t/ha · net margin $${bestCrop ? formatNumber(bestCrop.net_margin_usd_ha) : "—"}/ha</p><p>${bestCrop?.strengths?.join("; ") || "Complete the environmental analysis for crop strengths."}</p>`;
+  $("pdf-avoid-crop").innerHTML = `<strong>Crop to avoid first: ${avoidCrop?.name || "Not yet scored"}</strong><p>Modeled yield loss ${avoidCrop ? formatNumber(avoidCrop.expected_yield_loss_pct) : "—"}% · water deficit ${avoidCrop ? formatNumber(avoidCrop.water_deficit_mm) : "—"} mm</p><p>${avoidCrop?.risks?.join("; ") || "No risk reason available yet."}</p>`;
+  const table = document.createElement("table");
+  table.className = "pdf-comparison-table";
+  const rows = [
+    ["3-year sequence", baseline?.sequence?.map((id) => id === "fallow" ? "Bare Fallow" : cropRows[id]?.name || id).join(" → ") || "Not yet available", bestRotation?.sequence?.map((id) => cropRows[id]?.name || id).join(" → ") || "Not yet available"],
+    ["Water saved (m³/ha)", baseline && bestRotation ? reportValue(Math.max(0, baseline.water_use_m3_ha - bestRotation.water_use_m3_ha)) : "—", "vs. conventional baseline"],
+    ["Net nitrogen (kg N/ha)", reportValue(baseline?.net_nitrogen_contribution_kg_ha), reportValue(bestRotation?.net_nitrogen_contribution_kg_ha)],
+    ["Fertilizer savings ($/ha)", reportValue(baseline?.fertilizer_savings_usd_ha), reportValue(bestRotation?.fertilizer_savings_usd_ha)],
+    ["Projected net margin ($/ha)", reportValue(rotationMargin(baseline)), reportValue(rotationMargin(bestRotation))],
+  ];
+  table.innerHTML = `<thead><tr><th>Measure</th><th>Conventional baseline</th><th>Top recommended rotation</th></tr></thead>`;
+  const tbody = document.createElement("tbody");
+  rows.forEach(([label, base, recommended]) => {
+    const row = document.createElement("tr");
+    [label, base, recommended].forEach((value) => { const cell = document.createElement("td"); cell.textContent = value; row.append(cell); });
+    tbody.append(row);
+  });
+  table.append(tbody);
+  $("pdf-rotation-table").replaceChildren(table);
+  const climate = stage5.deltas;
+  $("pdf-climate-summary").textContent = climate
+    ? `Under +2°C, heat stress changes by ${climate.heat_stress_days >= 0 ? "+" : ""}${reportValue(climate.heat_stress_days)} days and ET₀ changes by ${climate.et0_mm >= 0 ? "+" : ""}${reportValue(climate.et0_mm)} mm. ${bestRotation?.name || "The recommended rotation"} is modeled at ${impact ? formatNumber(impact.additional_water_m3_ha) : "—"} m³/ha additional irrigation.`
+    : "Not yet simulated. Open the +2°C Climate Plan after completing land analysis.";
+  const alerts = (latestForecastResult?.alerts || []).filter((alert) => alert.severity !== "optimal");
+  $("pdf-alert-summary").textContent = alerts.length
+    ? `10-day field watch: ${alerts.length} active alert${alerts.length === 1 ? "" : "s"} — ${alerts.slice(0, 3).map((alert) => `${alert.title} (${alert.date})`).join("; ")}.`
+    : latestForecastResult?.available ? "10-day field watch: no active warnings." : "10-day field watch: not yet loaded or optional Meteomatics credentials are unavailable.";
+  $("pdf-report-container").dataset.ready = "true";
+  return Boolean(land);
+}
+async function exportPdfReport(event) {
+  const button = event.currentTarget;
+  const original = button.textContent;
+  if (!buildPdfReport()) {
+    setStatus("Select or analyze a land before exporting the report.", true);
+    return;
+  }
+  document.querySelectorAll(".report-export-button").forEach((item) => { item.disabled = true; item.textContent = "Generating PDF…"; });
+  const report = $("pdf-report-container");
+  report.classList.add("pdf-report-visible");
+  try {
+    if (window.html2pdf) {
+      await window.html2pdf().set({
+        margin: [8, 8, 8, 8],
+        filename: `field-shift-${(savedLands.find((item) => item.id === activeLandId)?.name || "action-report").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.pdf`,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2, backgroundColor: "#ffffff", useCORS: true },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        pagebreak: { mode: ["css", "legacy"] },
+      }).from(report).save();
+    } else {
+      window.print();
+    }
+  } catch (error) {
+    setStatus(`PDF export failed; opening print dialog instead: ${error.message}`, true);
+    window.print();
+  } finally {
+    report.classList.remove("pdf-report-visible");
+    document.querySelectorAll(".report-export-button").forEach((item) => { item.disabled = false; item.textContent = original; });
+  }
+}
 function renderWeatherQuick(result) {
   const container = $("weather-quick");
   if (!container) return;
@@ -642,6 +745,7 @@ $("logout-button").addEventListener("click", () => {
   showPortalGate();
 });
 document.querySelectorAll(".nav-tab").forEach((tab) => tab.addEventListener("click", () => showPage(tab.dataset.page)));
+document.querySelectorAll(".report-export-button").forEach((button) => button.addEventListener("click", exportPdfReport));
 $("context-change-land").addEventListener("click", () => showPage("lands-page"));
 $("open-draw-land").addEventListener("click", () => {
   showPage("health-page");

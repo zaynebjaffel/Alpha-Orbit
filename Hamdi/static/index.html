@@ -52,6 +52,7 @@
       <strong id="context-land-name">No parcel selected</strong>
       <span id="context-land-details"></span>
       <button id="context-change-land" class="button small" type="button">Change Land</button>
+      <button class="button primary small report-export-button" type="button">▣ Export PDF Report</button>
     </div>
     <section id="lands-page" class="portal-page lands-page">
       <div class="page-heading"><div><p class="eyebrow">Your farm workspace</p><h2>My Lands</h2><p class="hint">Open a prepared demo or continue with one of your saved parcels.</p></div><button id="open-draw-land" class="button primary" type="button">+ Add / Draw New Land</button></div>
@@ -64,7 +65,7 @@
       <div id="saved-lands-grid" class="saved-lands-grid"></div>
     </section>
     <section id="rotations-page" class="portal-page focused-page" hidden>
-      <div class="page-heading"><div><p class="eyebrow">Simple choices</p><h2>Best Rotations</h2><p class="hint">Choose a plan based on what matters most this season.</p></div></div>
+      <div class="page-heading"><div><p class="eyebrow">Simple choices</p><h2>Best Rotations</h2><p class="hint">Choose a plan based on what matters most this season.</p></div><button class="button primary report-export-button" type="button">▣ Export PDF Report</button></div>
       <div id="rotation-cards" class="focus-grid"></div>
     </section>
     <section id="custom-page" class="portal-page focused-page" hidden>
@@ -157,6 +158,7 @@
           <div class="panel-heading"><h2>Environmental data</h2><span id="data-badge" class="badge">Waiting</span></div>
           <p class="hint">Fetch open weather, soil, terrain, and Sentinel-2 analytical layers for the drawn farm.</p>
           <button id="fetch-data-button" class="button primary" type="button" disabled>Fetch Farm Environmental Data</button>
+          <button class="button secondary report-export-button" type="button">▣ Export PDF Report</button>
           <div id="environmental-results" class="environmental-results" hidden>
             <section class="health-hero">
               <div><p class="eyebrow">Land health verdict</p><h2 id="health-score">—</h2><span id="health-status" class="health-badge">Waiting for analysis</span></div>
@@ -238,10 +240,43 @@
       </aside>
       <section class="map-wrap"><div id="map" aria-label="Interactive farm map"></div></section>
     </main>
+    <section id="pdf-report-container" aria-hidden="true">
+      <div class="pdf-report">
+        <header class="pdf-report-header">
+          <p class="pdf-kicker">NASA Space Apps · Field Shift</p>
+          <h1>Field Shift — NASA-Powered Agronomic &amp; Climate Resilience Action Report</h1>
+          <p id="pdf-parcel-identity"></p>
+        </header>
+        <section class="pdf-section">
+          <h2>1. Land Health &amp; NASA Environmental Diagnostic</h2>
+          <div class="pdf-health-line"><strong id="pdf-health-score">Not yet analyzed</strong><span id="pdf-health-status">Analysis pending</span></div>
+          <p id="pdf-health-summary" class="pdf-summary"></p>
+          <div id="pdf-metric-strip" class="pdf-metric-strip"></div>
+        </section>
+        <section class="pdf-section">
+          <h2>2. Crop Suitability Highlights</h2>
+          <div class="pdf-two-column"><article id="pdf-best-crop" class="pdf-callout pdf-good"></article><article id="pdf-avoid-crop" class="pdf-callout pdf-risk"></article></div>
+        </section>
+        <section class="pdf-section">
+          <h2>3. Multi-Year Rotation Comparison &amp; Quantified Gains</h2>
+          <div id="pdf-rotation-table"></div>
+        </section>
+        <section class="pdf-section">
+          <h2>4. +2°C Climate Resilience &amp; 10-Day Field Watch</h2>
+          <p id="pdf-climate-summary" class="pdf-summary"></p>
+          <p id="pdf-alert-summary" class="pdf-summary"></p>
+        </section>
+        <footer class="pdf-footer">
+          <strong>5. Agronomic notice and open-data attribution</strong>
+          <p>Field Shift supports, but does not replace, local agricultural extension verification. This report uses NASA POWER, MODIS, SoilGrids 2.0, SRTM/Copernicus DEM sources, and UN FAO-56 methods. Forecast alerts are optional Meteomatics partner data when configured.</p>
+        </footer>
+      </div>
+    </section>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="/static/app.js?v=20261114-fetch-race"></script>
   </body>
 </html>
