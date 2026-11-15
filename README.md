@@ -24,7 +24,7 @@ Field Shift combines:
 - A transparent historical-temperature `+2°C` sensitivity scenario.
 - Local saved lands for a farmer portfolio.
 - An optional Meteomatics 10-day forecast and alert page when trial credentials are configured.
-- A one-click, client-side A4 PDF action and grant report using `html2pdf.js`, with a browser print fallback.
+- A one-click, client-side A4 PDF action and grant report using `jsPDF`, with a browser print fallback.
 
 External providers can be unavailable or rate-limited. The application preserves partial results and reports source warnings instead of silently treating missing data as a measurement.
 
@@ -38,7 +38,7 @@ External providers can be unavailable or rate-limited. The application preserves
 | Farmer priorities | The UI offers `Save water`, `Handle heat`, and `Protect income` priority controls that reorder climate rotation cards | [`app.js`](./Hamdi/static/app.js), [`index.html`](./Hamdi/static/index.html) |
 | `+2°C` scenario | Adds 2°C to daily temperatures, recalculates GDD and FAO-56 `ET₀`, counts heat days, estimates crop irrigation changes, and produces planting/rotation recommendations | [`climate_engine.py`](./Hamdi/backend/services/climate_engine.py) |
 | Multi-land management and tactical alerts | Local saved/demo parcels, active-land switching, centroid-targeted optional 10-day Meteomatics forecasts, and frost/heat/rain/wind alerts | [`app.js`](./Hamdi/static/app.js), [`meteomatics_service.py`](./Hamdi/backend/services/meteomatics_service.py) |
-| One-click action/grant report | Builds a print-optimized 1–2 page report from active localStorage parcel data, land-health metrics, crop/rotation scores, +2°C results, and loaded forecast alerts; downloads through `html2pdf.js` or falls back to `window.print()` | [`index.html`](./Hamdi/static/index.html), [`app.js`](./Hamdi/static/app.js), [`styles.css`](./Hamdi/static/styles.css) |
+| One-click action/grant report | Builds a print-optimized 1–2 page report from active localStorage parcel data, land-health metrics, crop/rotation scores, +2°C results, and loaded forecast alerts; downloads through `jsPDF` or falls back to `window.print()` | [`index.html`](./Hamdi/static/index.html), [`app.js`](./Hamdi/static/app.js), [`styles.css`](./Hamdi/static/styles.css) |
 
 ### Current implementation boundaries
 
@@ -46,7 +46,7 @@ For transparent judging, the current code does **not** claim features that are n
 
 - `ETₐ` is not independently observed or solved as a separate satellite product. The engine exposes reference `ET₀`, root-zone wetness, rainfall, and an irrigation-need proxy from crop demand minus seasonal rainfall.
 - The priority controls are buttons, not continuous sliders.
-- PDF generation is intentionally client-side: `html2pdf.js` is loaded from a CDN, and `window.print()` with `@media print` styling is the offline/browser fallback. No OS-dependent PDF package or backend PDF route is required.
+- PDF generation is intentionally client-side: `jsPDF` is loaded from a CDN and writes the report directly, while `window.print()` with `@media print` styling is the browser fallback. No OS-dependent PDF package or backend PDF route is required.
 - Meteomatics is optional. Without credentials, the rest of the open-data pipeline remains usable and the forecast page reports an unavailable state.
 
 ## Quick start
@@ -285,9 +285,9 @@ The core historical environmental workflow is intended to run without Meteomatic
 | Leaflet.draw | Polygon drawing/editing | MIT |
 | Turf.js | Browser geometry calculations | MIT |
 | Chart.js | Forecast chart | MIT |
-| html2pdf.js | Client-side PDF download from the print report | MIT |
+| jsPDF | Client-side PDF download from live report values | MIT |
 
-The browser loads Leaflet, Leaflet.draw, Turf.js, Chart.js, and html2pdf.js from CDNs as declared in [`static/index.html`](./Hamdi/static/index.html). Review the corresponding CDN versions and retain their license notices when packaging or redistributing the frontend.
+The browser loads Leaflet, Leaflet.draw, Turf.js, Chart.js, and jsPDF from CDNs as declared in [`static/index.html`](./Hamdi/static/index.html). Review the corresponding CDN versions and retain their license notices when packaging or redistributing the frontend.
 
 ## Scientific methodology
 
