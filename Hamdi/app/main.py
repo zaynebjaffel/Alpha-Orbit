@@ -26,7 +26,7 @@ USER_AGENT = os.getenv(
     "FieldShift/1.0 (NASA Space Apps prototype; contact project maintainer)",
 )
 
-app = FastAPI(title="Field Shift Spatial Intake API", version="1.0.0")
+app = FastAPI(title="Alpha Orbit Spatial Intake API", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

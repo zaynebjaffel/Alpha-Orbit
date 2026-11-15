@@ -1,4 +1,4 @@
-"""Build the reproducible Field Shift crop catalogue.
+"""Build the reproducible Alpha Orbit crop catalogue.
 
 The agronomic values are consolidated from FAO-56 crop coefficient/root-zone
 tables, FAO AquaCrop crop calendars, USDA PLANTS functional traits, and

@@ -1,4 +1,4 @@
-# Field Shift — Adapting Farms with NASA Data
+# Alpha Orbit — Adapting Farms with NASA Data
 
 [![Open Source](https://img.shields.io/badge/license-MIT-2ea44f)](./LICENSE)
 [![Open Data](https://img.shields.io/badge/data-NASA%20%2F%20Copernicus%20%2F%20ISRIC%20%2F%20FAO--56-0b6f9c)](#data-sources-attribution-and-licenses)
@@ -7,13 +7,13 @@
 
 **NASA Space Apps Challenge track:** *Field Shift: Adapting Farms with NASA Data*
 
-Field Shift is a farmer-facing decision-support prototype. It turns a drawn field boundary into a concise land-health summary, crop suitability ranking, multi-year rotation options, a transparent +2°C comparison, and optional tactical weather alerts. It is designed to **augment local agronomic judgment**, not replace the farmer, extension officer, or site-specific field measurements.
+Alpha Orbit is a farmer-facing decision-support prototype. It turns a drawn field boundary into a concise land-health summary, crop suitability ranking, multi-year rotation options, a transparent +2°C comparison, and optional tactical weather alerts. It is designed to **augment local agronomic judgment**, not replace the farmer, extension officer, or site-specific field measurements.
 
 ## Executive overview
 
 Climate volatility makes the same crop plan less reliable from one season to the next. Heat waves, water scarcity, soil degradation, bare ground, and runoff risk can interact in ways that are difficult to evaluate from a single weather station or a static crop calendar.
 
-Field Shift combines:
+Alpha Orbit combines:
 
 - A Leaflet map for drawing a WGS84 field polygon.
 - NASA POWER daily weather and derived FAO-56 reference evapotranspiration.
@@ -30,7 +30,7 @@ External providers can be unavailable or rate-limited. The application preserves
 
 ## Challenge alignment
 
-| Space Apps deliverable | Field Shift implementation | Evidence in this repository |
+| Space Apps deliverable | Alpha Orbit implementation | Evidence in this repository |
 |---|---|---|
 | Environmental stressor diagnostics | GDD with a 10°C base, days above 35°C, root-zone wetness, FAO-56 Penman–Monteith `ET₀`, rainfall, bare-ground exposure, heavy-rain windows, and slope/runoff vulnerability | [`data_fetcher.py`](./Hamdi/backend/services/data_fetcher.py), [`test_engine_validity.py`](./Hamdi/backend/tests/test_engine_validity.py) |
 | 30+ crop grader | Scores all 33 catalogue entries and returns a worst-to-best list with water demand, deficit, yield, margin, nitrogen, rooting, erosion, strengths, and risks | [`crop_database.json`](./Hamdi/backend/data/crop_database.json), [`crop_scorer.py`](./Hamdi/backend/services/crop_scorer.py) |
@@ -254,7 +254,7 @@ The table distinguishes data sources used by the current code from documented ex
 | Nominatim | Place-name geocoding | `https://nominatim.openstreetmap.org/search` | Open service subject to usage policy | ODbL for the underlying OpenStreetMap data; Nominatim software is GPLv2. Respect the Nominatim usage policy and identify a user agent. |
 | ISRIC SoilGrids 2.0 | `soc`, clay, sand, silt, `phh2o`, nitrogen, water-content properties | `https://rest.isric.org/soilgrids/v2.0/properties/query` with a documented fallback URL | Open data | CC BY 4.0; attribute ISRIC — World Soil Information and SoilGrids. |
 | FAO-56 / FAO AquaCrop references | Crop coefficients `Kc`, root depth `Zr`, depletion fraction `p`, and yield-response context | Reproducible catalogue builder plus FAO Irrigation and Drainage Paper 56 references | Open scientific references | FAO publications and standards are cited as the scientific source; verify and preserve the applicable FAO publication terms when redistributing derived tables. |
-| `pyfao56` reference | The catalogue builder documentation cites `pyfao56`, but it is **not a dependency in the current `requirements.txt`** and the runtime does not import it | Reference used during catalogue preparation; not a runtime API | Open-source reference, not a runtime component | The package's repository license must be checked before redistributing any package-derived material. The current project does not vendor `pyfao56`. |
+| `pyfao56` reference | The catalogue builder includes `pyfao56` in `requirements.txt`, but the runtime catalogue is generated JSON and does not import the package directly | Reference used during catalogue preparation; not a runtime API | Open-source reference, not a runtime component | The package's repository license must be checked before redistributing any package-derived material. The current project does not vendor `pyfao56`. |
 | USDA PLANTS / USDA NASS | Plant functional traits and benchmark context referenced by the catalogue | `https://plants.sc.egov.usda.gov/` and `https://quickstats.nass.usda.gov/api` | U.S. Government open data | U.S. Government public domain, subject to each service's terms and attribution guidance. |
 | World Bank Commodity Markets | Commodity and fertilizer benchmark context referenced by the catalogue documentation | `https://www.worldbank.org/en/research/commodity-markets` | Open data | CC BY 4.0 where the specific Pink Sheet release is marked under that license; attribute the World Bank and the release/version used. |
 | Meteomatics | Optional 10-day temperature, precipitation, ET, soil-moisture index, frost, heavy-rain, thunderstorm, and wind parameters | `https://api.meteomatics.com/` | Commercial partner trial; optional | Meteomatics terms/trial license apply. Do not treat this as an open-data dependency. The app falls back to `available: false` when credentials are absent. |
@@ -489,7 +489,7 @@ The report includes parcel identity, health score and four diagnostic metrics, b
 
 ## Attribution checklist
 
-When presenting or deploying Field Shift, retain:
+When presenting or deploying Alpha Orbit, retain:
 
 - “NASA POWER, NASA MODIS, NASA Earthdata, and NASA SRTM” attribution for NASA-derived data.
 - “Copernicus Sentinel data / Copernicus DEM” attribution for Copernicus-derived assets.
@@ -501,4 +501,4 @@ When presenting or deploying Field Shift, retain:
 
 ## License
 
-The Field Shift source code is released under the [MIT License](./LICENSE). Third-party datasets, APIs, imagery, maps, and optional partner services remain subject to their own licenses and terms listed in this README.
+The Alpha Orbit source code is released under the [MIT License](./LICENSE). Third-party datasets, APIs, imagery, maps, and optional partner services remain subject to their own licenses and terms listed in this README.

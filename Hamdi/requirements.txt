@@ -12,5 +12,7 @@ python-dotenv>=1.0,<2
 pyfao56>=1.4,<2
 pytest>=8,<10
 
-# The frontend PDF export uses html2pdf.js from a CDN; it is not a Python
+# The frontend PDF export uses jsPDF 2.5.1 from a CDN; it is not a Python
 # dependency and therefore is intentionally not installed by this file.
+# The browser must have network access to load:
+# https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js
